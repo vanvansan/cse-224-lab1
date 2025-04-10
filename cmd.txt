@@ -1,0 +1,2 @@
+.\utils\gensort-amd64.exe -maxlength 10 -minlength 5 10  sample.dat
+.\utils\showsort-amd64.exe .\sample.dat
