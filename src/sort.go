@@ -50,6 +50,7 @@ func (by By) Sort(records []Record) {
 }
 
 
+
 // Read a big-endian uint32 from a byte slice of length at least 4
 func ReadBigEndianUint32(buffer []byte) uint32 {
 	if len(buffer) < 4 {
@@ -117,12 +118,45 @@ func ReadFile(fileName string) []Record{
 	return records
 }
 
+func WriteFile(records []Record, fileName string){
+	file, err := os.Create(fileName)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		return
+	}
+	defer file.Close() // Ensure file is closed after operation
+	// Create a buffered writer for efficiency
+	writer := bufio.NewWriter(file)
+
+	// Write the positions to a file
+	for _, rec := range records {
+		err := binary.Write(writer, binary.BigEndian, rec.length)
+		if err != nil {
+			fmt.Println("binary.Write failed:", err)
+		}
+		err = binary.Write(writer, binary.BigEndian, rec.key)
+		if err != nil {
+			fmt.Println("binary.Write failed:", err)
+		}
+		err = binary.Write(writer, binary.BigEndian, rec.value)
+		if err != nil {
+			fmt.Println("binary.Write failed:", err)
+		}
+		// Ensure all buffered operations are applied
+		err = writer.Flush()
+		if err != nil {
+			fmt.Println("Error flushing buffer:", err)
+			return
+		}
+
+	}
+	fmt.Println("File written successfully.")
+}
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	if len(os.Args) != 3 {
-		fmt.Printf("Usage: %v inputfile outputfile\n", os.Args[0])
 		log.Fatalf("Usage: %v inputfile outputfile\n", os.Args[0])
 	}
 	key := func(r1, r2 *Record) bool {
@@ -136,10 +170,10 @@ func main() {
 	log.Printf("Sorting %s to %s\n", os.Args[1], os.Args[2])
 	records := ReadFile(os.Args[1])
 	By(key).Sort(records)
-	for _,e := range records{
-		fmt.Println(e)
-	}
-
+	// for _,e := range records{
+	// 	fmt.Println(e)
+	// }
+	WriteFile(records, os.Args[2])
 	// Reading a big-endian uint32 from a byte slice
 	// var data [4]byte = [4]byte{0x00, 0x00, 0x00, 0x01}
 	// num := ReadBigEndianUint32(data[:])
