@@ -7,7 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
-	// "sort"
+	"sort"
 	// "strings"
 )
 
@@ -17,13 +17,37 @@ type Record struct{
 	value []uint8
 }
 
-// func (by By) Sort(planets []Planet) {
-// 	ps := &planetSorter{
-// 		planets: planets,
-// 		by:      by, // The Sort method's receiver is the function (closure) that defines the sort order.
-// 	}
-// 	sort.Sort(ps)
-// }
+// By is the type of a "less" function that defines the ordering of its Planet arguments.
+type By func(r1, r2 *Record) bool
+
+// recordSorter joins a By function and a slice of Planets to be sorted.
+type recordSorter struct {
+	records []Record
+	by      func(p1, p2 *Record) bool // Closure used in the Less method.
+}
+
+
+// Len is part of sort.Interface.
+func (s *recordSorter) Len() int {
+	return len(s.records)
+}
+
+// Swap is part of sort.Interface.
+func (s *recordSorter) Swap(i, j int) {
+	s.records[i], s.records[j] = s.records[j], s.records[i]
+}
+
+// Less is part of sort.Interface. It is implemented by calling the "by" closure in the sorter.
+func (s *recordSorter) Less(i, j int) bool {
+	return s.by(&s.records[i], &s.records[j])
+}
+func (by By) Sort(records []Record) {
+	ps := &recordSorter{
+		records: records,
+		by:      by, // The Sort method's receiver is the function (closure) that defines the sort order.
+	}
+	sort.Sort(ps)
+}
 
 
 // Read a big-endian uint32 from a byte slice of length at least 4
@@ -54,7 +78,7 @@ func ReadFile(fileName string) []Record{
 	reader := bufio.NewReader(file)
 	count := 0
 	for {
-		fmt.Printf("Parsing in record  %d\n",count)
+		// fmt.Printf("Parsing in record  %d\n",count)
 		count ++
 		record := new(Record)
 		err = binary.Read(reader, binary.BigEndian, &record.length)
@@ -101,9 +125,21 @@ func main() {
 		fmt.Printf("Usage: %v inputfile outputfile\n", os.Args[0])
 		log.Fatalf("Usage: %v inputfile outputfile\n", os.Args[0])
 	}
-
+	key := func(r1, r2 *Record) bool {
+		for i := 0; i < 10; i++{
+			if r1.key[i] != r2.key[i]{
+				return r1.key[i] < r2.key[i]
+			}
+		}
+		return true
+	}
 	log.Printf("Sorting %s to %s\n", os.Args[1], os.Args[2])
-	ReadFile(os.Args[1])
+	records := ReadFile(os.Args[1])
+	By(key).Sort(records)
+	for _,e := range records{
+		fmt.Println(e)
+	}
+
 	// Reading a big-endian uint32 from a byte slice
 	// var data [4]byte = [4]byte{0x00, 0x00, 0x00, 0x01}
 	// num := ReadBigEndianUint32(data[:])
